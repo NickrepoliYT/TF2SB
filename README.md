@@ -11,4 +11,5 @@ In Team Fortress 2 Sandbox, players can release their creativity and build thing
 - Tool Gun - Explode everything, customize a prop, or disallow collisions on a prop.
 
 ### Social Media
-You can find links to our Discord, TF2 Server, and Steam Group [here](https://sandbox.moddage.site/).
+Discord: https://discord.gg/DaxpuzY
+TF2 Servers: la1.moddage.site:27015, la2.moddage.site:27015
