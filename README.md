@@ -9,8 +9,6 @@ In Team Fortress 2 Sandbox, players can release their creativity and build thing
 - Move/Rotate/Scale Props - Use +copy, +move, or even sm_skin to customize your props.
 - Physics Gun - The Garry's Mod classic returns here, with a easy way of moving around props, you'll never have issues.
 - Tool Gun - Explode everything, customize a prop, or disallow collisions on a prop.
-- Noclip - Fly through walls to get where you need to.
-- Player Menu - Add conditions or pose yourself.
 
 ### Social Media
 You can find links to our Discord, TF2 Server, and Steam Group [here](https://sandbox.moddage.site/).
