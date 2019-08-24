@@ -22,22 +22,14 @@
 #include <sdktools>
 #include <build>
 #include <build_stocks>
-#undef REQUIRE_PLUGIN
-#include <updater>
 
-#include <steamworks>
-
-#define DEBUG 
-
-#define UPDATE_URL    "https://sandbox.moddage.site/plugin/updater.txt"
+#define DEBUG
 
 #if BUILDMODAPI_VER < 3
 #error "build.inc is outdated. please update before compiling"
 #endif
 
-#define MSGTAG "\x01[\x04TF2SB\x01]"
-
-new bool:steamworks = false;
+#define MSGTAG "\x01[\x04TF2SB Lite\x01]"
 
 new bool:g_bClientLang[MAXPLAYERS];
 new Handle:g_hCookieClientLang;
@@ -48,9 +40,7 @@ new g_iDollCurrent[MAXPLAYERS];
 new g_iServerCurrent;
 new g_iEntOwner[MAX_HOOK_ENTITIES] =  { -1, ... };
 new Handle:g_hCvarServerTag = INVALID_HANDLE;
-new Handle:g_hCvarGameDesc = INVALID_HANDLE;
 
-new Handle:g_hBlackListArray;
 new Handle:g_hCvarSwitch = INVALID_HANDLE;
 new Handle:g_hCvarNonOwner = INVALID_HANDLE;
 new Handle:g_hCvarFly = INVALID_HANDLE;
@@ -67,24 +57,11 @@ new g_iCvarServerLimit;
 
 
 public Plugin:myinfo =  {
-	name = "TF2 Sandbox Core", 
-	author = "LeadKiller, Danct12, DaRkWoRlD, greenteaf0718, hjkwe654", 
-	description = "TF2SB Controller Core", 
-	version = BUILDMOD_VER, 
-	url = "https://sandbox.moddage.site/"
-};
-
-static const String:tips[10][] =  {
-	"Type /g to get the Physics Gun and move props around.", 
-	"You can rotate a prop by holding down the Reload button.", 
-	"If you want to delete everything you own, type !delall", 
-	"Type /del to delete the prop you are looking at.", 
-	"This server is running \x04TF2:Sandbox\x01 by \x05Danct12\x01 and \x05DaRkWoRlD\x01. Type !tf2sb for more info.", 
-	"This mod is a work in progress.", 
-	"Type /build to begin building.", 
-	"TF2SB Source Code: https://github.com/Danct12/TF2SB", 
-	"TF2SB official group: http://steamcommunity.com/groups/TF2Sandbox", 
-	"Tired to be in Godmode? Why not turn it off? Say !god"
+	name = "TF2 Sandbox Lite Core",
+	author = "Yuuki, LeadKiller, Danct12, DaRkWoRlD, greenteaf0718, hjkwe654",
+	description = "TF2SB Lite Controller Core",
+	version = BUILDMOD_VER,
+	url = "https://github.com/NickrepoliYT/tf2sb"
 };
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max) {
@@ -101,73 +78,17 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max) 
 	CreateNative("Build_Logging", Native_LogCmds);
 	CreateNative("Build_PrintToChat", Native_PrintToChat);
 	CreateNative("Build_PrintToAll", Native_PrintToAll);
-	CreateNative("Build_AddBlacklist", Native_AddBlacklist);
-	CreateNative("Build_RemoveBlacklist", Native_RemoveBlacklist);
-	CreateNative("Build_IsBlacklisted", Native_IsBlacklisted);
 	CreateNative("Build_IsClientValid", Native_IsClientValid);
 	
-	#if defined _steamtools_included
-	MarkNativeAsOptional("Steam_SetGameDescription");
-	#endif
-	#if defined _SteamWorks_Included
-	MarkNativeAsOptional("SteamWorks_SetGameDescription");
-	#endif
-	
-	// updater
-    if (LibraryExists("updater"))
-    {
-        Updater_AddPlugin(UPDATE_URL);
-    }
-	
 	return APLRes_Success;
-}
-
-public OnLibraryAdded(const String:name[])
-{
-	if (StrEqual(name, "updater"))
-	{
-		Updater_AddPlugin(UPDATE_URL);
-	}
-	
-	if (!strcmp(name, "SteamWorks", false))
-	{
-		steamworks = true;
-	}
-}
-
-public OnLibraryRemoved(const String:name[])
-{
-	
-	if (!strcmp(name, "SteamWorks", false))
-	{
-		steamworks = false;
-	}
 }
 
 public OnConfigsExecuted() {
 	if (GetConVarBool(g_hCvarServerTag))
 		TagsCheck("tf2sb");
-	
-	if (GetConVarBool(g_hCvarGameDesc))
-	{
-		new String:sBuffer[64];
-		Format(sBuffer, sizeof(sBuffer), "TF2: Sandbox %s", BUILDMOD_VER);
-		#if defined _SteamWorks_Included
-		if (steamworks)
-		{
-			SteamWorks_SetGameDescription(sBuffer);
-		}
-		#endif
-	}
 }
 
 public OnPluginStart() {
-	// Check for update status:
-	if (LibraryExists("updater"))
-	{
-		Updater_AddPlugin(UPDATE_URL);
-	}
-	
 	g_hCvarSwitch = CreateConVar("sbox_enable", "2", "Turn on, off TF2SB, or admins only.\n0 = Off\n1 = Admins Only\n2 = Enabled for everyone", 0, true, 0.0, true, 2.0);
 	g_hCvarNonOwner = CreateConVar("sbox_nonowner", "0", "Switch non-admin player can control non-owner props or not", 0, true, 0.0, true, 1.0);
 	g_hCvarFly = CreateConVar("sbox_noclip", "1", "Can players can use !fly to noclip or not?", 0, true, 0.0, true, 1.0);
@@ -175,7 +96,6 @@ public OnPluginStart() {
 	g_hCvarClDollLimit = CreateConVar("sbox_maxragdolls", "10", "Player doll spawn limit.", 0, true, 0.0);
 	g_hCvarServerLimit = CreateConVar("sbox_maxprops", "2000", "Server-side props limit.\nDO NOT CHANGE THIS UNLESS YOU KNOW WHAT ARE YOU DOING.\nIf you're looking for changing props limit for player, check out 'sbox_maxpropsperplayer'.'", 0, true, 0.0, true, 0.0);
 	g_hCvarServerTag = CreateConVar("sbox_tag", "1", "Enable 'tf2sb' tag", 0, true, 1.0);
-	g_hCvarGameDesc = CreateConVar("sbox_gamedesc", "1", "Change game name to 'TF2 Sandbox Version'?", 0, true, 1.0);
 	RegAdminCmd("sm_version", Command_Version, 0, "Show TF2SB Core version");
 	RegAdminCmd("sm_my", Command_SpawnCount, 0, "Show how many entities are you spawned.");
 	SetConVarInt(FindConVar("tf_allow_player_use"), 1);
@@ -197,22 +117,12 @@ public OnPluginStart() {
 	
 	g_hCookieClientLang = RegClientCookie("cookie_BuildModClientLang", "TF2SB Client Language.", CookieAccess_Private);
 	
-	steamworks = LibraryExists("SteamWorks");
-	
-	
-	
-	g_hBlackListArray = CreateArray(33, 128); // 33 arrays, every array size is 128
-	ReadBlackList();
-	PrintToServer("[TF2SB] Plugin successfully started!");
-	PrintToServer("This plugin is a work in progress thing, if you have any issues about it, please make a issue post on TF2SB Github: https://github.com/Danct12/TF2SB");
-	CreateTimer(120.0, HandleTips, any:0, 1);
-	
+	PrintToServer("[TF2SB Lite] Plugin successfully started!");
 }
 
 
 
 public OnMapStart() {
-	CreateTimer(1.0, DisplayHud, any:0, 3);
 	Build_FirstRun();
 }
 
@@ -224,45 +134,6 @@ public Action:OnPlayerRunCmd(client, &buttons)
 		// If so, add the button to use (+use)
 		buttons += IN_USE;
 	}
-}
-
-public Action:DisplayHud(Handle:timer)
-{
-	SetHudTextParams(-1.0, 0.0, 1.0, 0, 255, 255, 255, 0, 1.0, 0.1, 0.2);
-	new i = 1;
-	while (i < MaxClients)
-	{
-		if (IsValidEntity(i))
-		{
-			ShowHudText(i, -1, "Type !build. This is a WORK IN PROGRESS gamemode!\n\nCurrent Props: %i/%i", g_iPropCurrent[i], g_iCvarClPropLimit[i]);
-		}
-		i++;
-	}
-	return Action:0;
-}
-
-
-public Action:HandleTips(Handle:timer)
-{
-	Build_PrintToAll(" %s", tips[GetRandomInt(0, sizeof(tips) - 1)]);
-}
-
-public OnMapEnd() {
-	new String:szFile[128], String:szData[64];
-	BuildPath(Path_SM, szFile, sizeof(szFile), "configs/buildmod/blacklist.ini");
-	
-	new Handle:hFile = OpenFile(szFile, "w");
-	if (hFile == INVALID_HANDLE)
-		return false;
-	
-	for (new i = 0; i < GetArraySize(g_hBlackListArray); i++) {
-		GetArrayString(g_hBlackListArray, i, szData, sizeof(szData));
-		if (StrContains(szData, "STEAM_") != -1)
-			WriteFileString(hFile, szData, false);
-	}
-	
-	CloseHandle(hFile);
-	return true;
 }
 
 public Action:OnClientCommand(Client, args) {
@@ -312,7 +183,7 @@ public Action:Command_Version(Client, args) {
 }
 
 public Action:Command_SpawnCount(Client, args) {
-	if (!Build_AllowToUse(Client) || Build_IsBlacklisted(Client))
+	if (!Build_AllowToUse(Client))
 		return Plugin_Handled;
 	
 	new String:szTemp[33], String:szArgs[128];
@@ -644,72 +515,6 @@ public Native_PrintToAll(Handle:hPlugin, iNumParams) {
 	PrintToChatAll("%s%s", MSGTAG, szMsg);
 }
 
-public Native_AddBlacklist(Handle:hPlugin, iNumParams) {
-	new Client = GetNativeCell(1);
-	new String:szAuthid[33], String:szName[33], String:WriteToArray[128], String:szData[128];
-	GetClientAuthString(Client, szAuthid, sizeof(szAuthid));
-	GetClientName(Client, szName, sizeof(szName));
-	
-	new i;
-	for (i = 0; i < GetArraySize(g_hBlackListArray); i++) {
-		GetArrayString(g_hBlackListArray, i, szData, sizeof(szData));
-		if (StrEqual(szData, ""))
-			break;
-	}
-	
-	Format(WriteToArray, sizeof(WriteToArray), "\"%s\"\t\t// %s\n", szAuthid, szName);
-	if (SetArrayString(g_hBlackListArray, i, WriteToArray))
-		return true;
-	
-	return false;
-}
-
-public Native_RemoveBlacklist(Handle:hPlugin, iNumParams) {
-	new Client = GetNativeCell(1);
-	new String:szAuthid[33], String:szName[33], String:szData[128];
-	GetClientAuthString(Client, szAuthid, sizeof(szAuthid));
-	GetClientName(Client, szName, sizeof(szName));
-	
-	new i;
-	for (i = 0; i < GetArraySize(g_hBlackListArray); i++) {
-		GetArrayString(g_hBlackListArray, i, szData, sizeof(szData));
-		if (StrContains(szData, szAuthid) != -1) {
-			RemoveFromArray(g_hBlackListArray, i);
-			return true;
-		}
-	}
-	
-	return false;
-}
-
-public Native_IsBlacklisted(Handle:hPlugin, iNumParams) {
-	new Client = GetNativeCell(1);
-	new String:szAuthid[33], String:szData[128];
-	new bool:BLed = false;
-	GetClientAuthString(Client, szAuthid, sizeof(szAuthid));
-	
-	for (new i = 0; i < GetArraySize(g_hBlackListArray); i++) {
-		GetArrayString(g_hBlackListArray, i, szData, sizeof(szData));
-		if (StrContains(szData, szAuthid) != -1) {
-			BLed = true;
-			break;
-		}
-	}
-	
-	if (BLed) {
-		if (g_bClientLang[Client]) {
-			Build_PrintToChat(Client, "你被加入黑名單了 :(");
-			Build_PrintToChat(Client, "你可以請管理員解除你的黑名單 :(");
-		} else {
-			Build_PrintToChat(Client, "You were blacklisted :(");
-			Build_PrintToChat(Client, "You may ask admins to unblacklist you :(");
-		}
-		return true;
-	}
-	
-	return false;
-}
-
 public Native_IsClientValid(Handle:hPlugin, iNumParams) {
 	new Client = GetNativeCell(1);
 	new iTarget = GetNativeCell(2);
@@ -740,26 +545,6 @@ public Native_IsClientValid(Handle:hPlugin, iNumParams) {
 		}
 	}
 	return true;
-}
-
-ReadBlackList() {
-	new String:szFile[128];
-	BuildPath(Path_SM, szFile, sizeof(szFile), "configs/buildmod/blacklist.ini");
-	
-	new Handle:hFile = OpenFile(szFile, "r");
-	if (hFile == INVALID_HANDLE)
-		return;
-	
-	new iClients = 0;
-	while (!IsEndOfFile(hFile))
-	{
-		new String:szLine[255];
-		if (!ReadFileLine(hFile, szLine, sizeof(szLine)))
-			break;
-		
-		SetArrayString(g_hBlackListArray, iClients++, szLine);
-	}
-	CloseHandle(hFile);
 }
 
 stock TagsCheck(const String:tag[])
