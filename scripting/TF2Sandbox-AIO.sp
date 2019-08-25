@@ -51,12 +51,6 @@ new String:g_szConnectedClient[32][MAXPLAYERS];
 //new String:g_szDisconnectClient[32][MAXPLAYERS];
 new g_iTempOwner[MAX_HOOK_ENTITIES] =  { -1, ... };
 
-new Float:g_fDelRangePoint1[MAXPLAYERS][3];
-new Float:g_fDelRangePoint2[MAXPLAYERS][3];
-new Float:g_fDelRangePoint3[MAXPLAYERS][3];
-new String:g_szDelRangeStatus[MAXPLAYERS][8];
-new bool:g_szDelRangeCancel[MAXPLAYERS] =  { false, ... };
-
 new ColorBlue[4] =  {
 	50, 
 	50, 
@@ -68,16 +62,6 @@ new ColorWhite[4] =  {
 	255, 
 	255, 
 	255 };
-new ColorRed[4] =  {
-	255, 
-	50, 
-	50, 
-	255 };
-new ColorGreen[4] =  {
-	50, 
-	255, 
-	50, 
-	255 };
 
 #define EFL_NO_PHYSCANNON_INTERACTION (1<<30)
 
@@ -86,10 +70,6 @@ new g_PBeam;
 
 new bool:g_bBuffer[MAXPLAYERS + 1];
 
-new g_iCopyTarget[MAXPLAYERS];
-new Float:g_fCopyPlayerOrigin[MAXPLAYERS][3];
-new bool:g_bCopyIsRunning[MAXPLAYERS] = false;
-
 new g_Beam;
 
 new Handle:g_hMainMenu = INVALID_HANDLE;
@@ -97,7 +77,6 @@ new Handle:g_hPropMenu = INVALID_HANDLE;
 new Handle:g_hEquipMenu = INVALID_HANDLE;
 new Handle:g_hPlayerStuff = INVALID_HANDLE;
 new Handle:g_hCondMenu = INVALID_HANDLE;
-new Handle:g_hRemoveMenu = INVALID_HANDLE;
 new Handle:g_hBuildHelperMenu = INVALID_HANDLE;
 new Handle:g_hPropMenuComic = INVALID_HANDLE;
 new Handle:g_hPropMenuConstructions = INVALID_HANDLE;
@@ -110,71 +89,6 @@ new Handle:g_hPropNameArray;
 new Handle:g_hPropModelPathArray;
 new Handle:g_hPropTypeArray;
 new Handle:g_hPropStringArray;*/
-
-new String:CopyableProps[][] =  {
-	"prop_dynamic", 
-	"prop_dynamic_override", 
-	"prop_physics", 
-	"prop_physics_multiplayer", 
-	"prop_physics_override", 
-	"prop_physics_respawnable", 
-	"prop_ragdoll", 
-	"func_physbox", 
-	"player"
-};
-
-new String:EntityType[][] =  {
-	"player", 
-	"func_physbox", 
-	"prop_door_rotating", 
-	"prop_dynamic", 
-	"prop_dynamic_ornament", 
-	"prop_dynamic_override", 
-	"prop_physics", 
-	"prop_physics_multiplayer", 
-	"prop_physics_override", 
-	"prop_physics_respawnable", 
-	"prop_ragdoll", 
-	"item_ammo_357", 
-	"item_ammo_357_large", 
-	"item_ammo_ar2", 
-	"item_ammo_ar2_altfire", 
-	"item_ammo_ar2_large", 
-	"item_ammo_crate", 
-	"item_ammo_crossbow", 
-	"item_ammo_pistol", 
-	"item_ammo_pistol_large", 
-	"item_ammo_smg1", 
-	"item_ammo_smg1_grenade", 
-	"item_ammo_smg1_large", 
-	"item_battery", 
-	"item_box_buckshot", 
-	"item_dynamic_resupply", 
-	"item_healthcharger", 
-	"item_healthkit", 
-	"item_healthvial", 
-	"item_item_crate", 
-	"item_rpg_round", 
-	"item_suit", 
-	"item_suitcharger", 
-	"weapon_357", 
-	"weapon_alyxgun", 
-	"weapon_ar2", 
-	"weapon_bugbait", 
-	"weapon_crossbow", 
-	"weapon_crowbar", 
-	"weapon_frag", 
-	"weapon_physcannon", 
-	"weapon_pistol", 
-	"weapon_rpg", 
-	"weapon_shotgun", 
-	"weapon_smg1", 
-	"weapon_stunstick", 
-	"weapon_slam", 
-	"tf_viewmodel", 
-	"tf_", 
-	"gib"
-};
 
 new String:DelClass[][] =  {
 	"npc_", 
@@ -190,19 +104,6 @@ new String:DelClass[][] =  {
 	"Item_", 
 	"ITEM_", 
 	"gib"
-};
-
-enum PropTypeCheck {
-	
-	PROP_NONE = 0, 
-	PROP_RIGID = 1, 
-	PROP_PHYSBOX = 2, 
-	PROP_WEAPON = 3, 
-	PROP_TF2OBJ = 4,  //tf2 buildings
-	PROP_RAGDOLL = 5, 
-	PROP_TF2PROJ = 6,  //tf2 projectiles
-	PROP_PLAYER = 7
-	
 };
 
 public Plugin:myinfo =  {
@@ -238,12 +139,11 @@ public OnPluginStart() {
 	RegAdminCmd("sm_fly", Command_Fly, 0, "I BELIEVE I CAN FLYYYYYYY, I BELIEVE THAT I CAN TOUCH DE SKY");
 	RegAdminCmd("sm_setname", Command_SetName, 0, "SetPropname");
 	RegAdminCmd("sm_simplelight", Command_SimpleLight, 0, "Spawn a Light, in a very simple way.");
-	RegAdminCmd("sm_propdoor", Command_OpenableDoorProp, 0, "Making a door, in prop_door way.");
 	RegAdminCmd("sm_propscale", Command_PropScale, ADMFLAG_SLAY, "Resizing a prop");
 	
 	// HL2 Props
 	g_hPropMenuHL2 = CreateMenu(PropMenuHL2);
-	SetMenuTitle(g_hPropMenuHL2, "TF2SB - HL2 Props and Miscs\nSay /g in chat to move Entities!");
+	SetMenuTitle(g_hPropMenuHL2, "TF2SB - HL2 Props and Miscs");
 	SetMenuExitBackButton(g_hPropMenuHL2, true);
 	AddMenuItem(g_hPropMenuHL2, "removeprops", "|Remove");
 	
@@ -274,15 +174,13 @@ public OnPluginStart() {
 	
 	// Simple Menu
 	g_hMainMenu = CreateMenu(MainMenu);
-	SetMenuTitle(g_hMainMenu, "TF2SB - Spawnlist v2");
-	AddMenuItem(g_hMainMenu, "spawnlist", "Spawn...");
-	AddMenuItem(g_hMainMenu, "equipmenu", "Equip...");
-	AddMenuItem(g_hMainMenu, "playerstuff", "Player...");
-	AddMenuItem(g_hMainMenu, "buildhelper", "Build Helper...");
+	SetMenuTitle(g_hMainMenu, "TF2SB Lite");
+	AddMenuItem(g_hMainMenu, "spawnlist", "Spawnlists");
+	AddMenuItem(g_hMainMenu, "playerstuff", "Player");
 	
 	// Player Stuff for now
 	g_hPlayerStuff = CreateMenu(PlayerStuff);
-	SetMenuTitle(g_hPlayerStuff, "TF2SB - Player...");
+	SetMenuTitle(g_hPlayerStuff, "Player");
 	AddMenuItem(g_hPlayerStuff, "cond", "Conditions...");
 	AddMenuItem(g_hPlayerStuff, "sizes", "Sizes...");
 	AddMenuItem(g_hPlayerStuff, "health", "Health");
@@ -294,28 +192,6 @@ public OnPluginStart() {
 	// Init thing for commands!
 	RegAdminCmd("sm_sandbox", Command_BuildMenu, 0);
 	RegAdminCmd("sm_resupply", Command_Resupply, 0);
-	
-	// Build Helper (placeholder)
-	g_hBuildHelperMenu = CreateMenu(BuildHelperMenu);
-	SetMenuTitle(g_hBuildHelperMenu, "TF2SB - Build Helper\nThis was actually a placeholder because we can't figure out how to make a toolgun");
-	
-	AddMenuItem(g_hBuildHelperMenu, "delprop", "Delete Prop");
-	AddMenuItem(g_hBuildHelperMenu, "colors", "Color (see chat)");
-	AddMenuItem(g_hBuildHelperMenu, "effects", "Effects (see chat)");
-	AddMenuItem(g_hBuildHelperMenu, "skin", "Skin (see chat)");
-	AddMenuItem(g_hBuildHelperMenu, "rotate", "Rotate (see chat)");
-	AddMenuItem(g_hBuildHelperMenu, "accuraterotate", "Accurate Rotate (see chat)");
-	AddMenuItem(g_hBuildHelperMenu, "doors", "Doors (see chat)");
-	AddMenuItem(g_hBuildHelperMenu, "lights", "Lights");
-	SetMenuExitBackButton(g_hBuildHelperMenu, true);
-	
-	// Remove Command
-	g_hRemoveMenu = CreateMenu(RemoveMenu);
-	SetMenuTitle(g_hRemoveMenu, "TF2SB - Remove");
-	AddMenuItem(g_hRemoveMenu, "remove", "Remove that prop");
-	AddMenuItem(g_hRemoveMenu, "delallfail", "To delete all, type !delall (there is no comeback)");
-	
-	SetMenuExitBackButton(g_hRemoveMenu, true);
 	
 	//Addcond Menu
 	g_hCondMenu = CreateMenu(CondMenu);
@@ -347,7 +223,7 @@ public OnPluginStart() {
 	
 	// Prop Menu INIT
 	g_hPropMenu = CreateMenu(PropMenu);
-	SetMenuTitle(g_hPropMenu, "TF2SB - Spawn...\nSay /g in chat to move Entities!");
+	SetMenuTitle(g_hPropMenu, "TF2SB - Spawn...");
 	SetMenuExitBackButton(g_hPropMenu, true);
 	AddMenuItem(g_hPropMenu, "removeprops", "|Remove");
 	AddMenuItem(g_hPropMenu, "constructprops", "Construction Props");
@@ -358,7 +234,7 @@ public OnPluginStart() {
 	
 	// Prop Menu Pickup
 	g_hPropMenuPickup = CreateMenu(PropMenuPickup);
-	SetMenuTitle(g_hPropMenuPickup, "TF2SB - Pickup Props\nSay /g in chat to move Entities!");
+	SetMenuTitle(g_hPropMenuPickup, "TF2SB - Pickup Props");
 	SetMenuExitBackButton(g_hPropMenuPickup, true);
 	AddMenuItem(g_hPropMenuPickup, "removeprops", "|Remove");
 	AddMenuItem(g_hPropMenuPickup, "medkit_large", "Medkit Large");
@@ -385,7 +261,7 @@ public OnPluginStart() {
 	
 	// Prop Menu Weapons
 	g_hPropMenuWeapons = CreateMenu(PropMenuWeapons);
-	SetMenuTitle(g_hPropMenuWeapons, "TF2SB - Weapon Props\nSay /g in chat to move Entities!");
+	SetMenuTitle(g_hPropMenuWeapons, "TF2SB - Weapon Props");
 	SetMenuExitBackButton(g_hPropMenuWeapons, true);
 	AddMenuItem(g_hPropMenuWeapons, "removeprops", "|Remove");
 	AddMenuItem(g_hPropMenuWeapons, "w_baseball", "Baseball");
@@ -419,7 +295,7 @@ public OnPluginStart() {
 	
 	// Prop Menu Comics Prop
 	g_hPropMenuComic = CreateMenu(PropMenuComics);
-	SetMenuTitle(g_hPropMenuComic, "TF2SB - Comic Props\nSay /g in chat to move Entities!");
+	SetMenuTitle(g_hPropMenuComic, "TF2SB - Comic Props");
 	SetMenuExitBackButton(g_hPropMenuComic, true);
 	AddMenuItem(g_hPropMenuComic, "removeprops", "|Remove");
 	AddMenuItem(g_hPropMenuComic, "ingot001", "Gold Ingot");
@@ -443,7 +319,7 @@ public OnPluginStart() {
 	
 	// Prop Menu Constructions Prop
 	g_hPropMenuConstructions = CreateMenu(PropMenuConstructions);
-	SetMenuTitle(g_hPropMenuConstructions, "TF2SB - Construction Props\nSay /g in chat to move Entities!");
+	SetMenuTitle(g_hPropMenuConstructions, "TF2SB - Construction Props");
 	SetMenuExitBackButton(g_hPropMenuConstructions, true);
 	AddMenuItem(g_hPropMenuConstructions, "removeprops", "|Remove");
 	AddMenuItem(g_hPropMenuConstructions, "air_intake", "Air Fan");
@@ -733,279 +609,11 @@ public Action:Timer_Disconnect(Handle:Timer, Handle:hPack) {
 	return;
 }
 
-public Action:Command_Copy(Client, args) {
-	
-	if (g_bBuffer[Client])
-	{
-		Build_PrintToChat(Client, "You're doing it so fast! Slow it down!");
-		
-		return Plugin_Handled;
-	}
-	
-	g_bBuffer[Client] = true;
-	CreateTimer(0.5, Timer_CoolDown, GetClientSerial(Client));
-	
-	if (!Build_AllowToUse(Client) || !Build_IsClientValid(Client, Client, true))
-		return Plugin_Handled;
-	
-	
-	
-	new iEntity = Build_ClientAimEntity(Client, true, true);
-	if (iEntity == -1)
-		return Plugin_Handled;
-	
-	if (!Build_IsAdmin(Client, true)) {
-		if (GetEntityFlags(iEntity) & (FL_CLIENT | FL_FAKECLIENT))
-			return Plugin_Handled;
-	}
-	
-	if (!Build_IsEntityOwner(Client, iEntity, true))
-		return Plugin_Handled;
-	
-	if (g_bCopyIsRunning[Client]) {
-		Build_PrintToChat(Client, "You are already copying something!");
-		return Plugin_Handled;
-	}
-	
-	new String:szClass[33], bool:bCanCopy = false;
-	GetEdictClassname(iEntity, szClass, sizeof(szClass));
-	for (new i = 0; i < sizeof(CopyableProps); i++) {
-		if (StrEqual(szClass, CopyableProps[i], false))
-			bCanCopy = true;
-	}
-	
-	new bool:IsDoll = false;
-	if (StrEqual(szClass, "prop_ragdoll") || StrEqual(szClass, "player")) {
-		if (Build_IsAdmin(Client, true)) {
-			g_iCopyTarget[Client] = CreateEntityByName("prop_ragdoll");
-			IsDoll = true;
-		} else {
-			Build_PrintToChat(Client, "You need \x04L2 Build Access\x01 to copy this prop!");
-			return Plugin_Handled;
-		}
-	} else {
-		if (StrEqual(szClass, "func_physbox") && !Build_IsAdmin(Client, true)) {
-			
-			Build_PrintToChat(Client, "You can't copy this prop!");
-			return Plugin_Handled;
-		}
-		
-		g_iCopyTarget[Client] = CreateEntityByName(szClass);
-	}
-	
-	if (Build_RegisterEntityOwner(g_iCopyTarget[Client], Client, IsDoll)) {
-		if (bCanCopy) {
-			new Float:fEntityOrigin[3], Float:fEntityAngle[3];
-			new String:szModelName[128];
-			new String:szColorR[20], String:szColorG[20], String:szColorB[20], String:szColor[3][128], String:szColor2[255];
-			
-			GetEntPropVector(iEntity, Prop_Data, "m_vecOrigin", fEntityOrigin);
-			GetEntPropVector(iEntity, Prop_Data, "m_angRotation", fEntityAngle);
-			GetEntPropString(iEntity, Prop_Data, "m_ModelName", szModelName, sizeof(szModelName));
-			if (StrEqual(szModelName, "models/props_c17/oildrum001_explosive.mdl") && !Build_IsAdmin(Client, true)) {
-				Build_PrintToChat(Client, "You need \x04L2 Build Access\x01 to copy this prop!");
-				RemoveEdict(g_iCopyTarget[Client]);
-				return Plugin_Handled;
-			}
-			DispatchKeyValue(g_iCopyTarget[Client], "model", szModelName);
-			
-			
-			GetEdictClassname(g_iCopyTarget[Client], szClass, sizeof(szClass));
-			if (StrEqual(szClass, "prop_dynamic")) {
-				SetEntProp(g_iCopyTarget[Client], Prop_Send, "m_nSolidType", 6);
-				SetEntProp(g_iCopyTarget[Client], Prop_Data, "m_nSolidType", 6);
-			}
-			
-			DispatchSpawn(g_iCopyTarget[Client]);
-			TeleportEntity(g_iCopyTarget[Client], fEntityOrigin, fEntityAngle, NULL_VECTOR);
-			
-			GetCmdArg(1, szColorR, sizeof(szColorR));
-			GetCmdArg(2, szColorG, sizeof(szColorG));
-			GetCmdArg(3, szColorB, sizeof(szColorB));
-			
-			DispatchKeyValue(g_iCopyTarget[Client], "rendermode", "5");
-			DispatchKeyValue(g_iCopyTarget[Client], "renderamt", "150");
-			DispatchKeyValue(g_iCopyTarget[Client], "renderfx", "4");
-			
-			if (args > 1) {
-				szColor[0] = szColorR;
-				szColor[1] = szColorG;
-				szColor[2] = szColorB;
-				ImplodeStrings(szColor, 3, " ", szColor2, 255);
-				DispatchKeyValue(g_iCopyTarget[Client], "rendercolor", szColor2);
-			} else {
-				DispatchKeyValue(g_iCopyTarget[Client], "rendercolor", "50 255 255");
-			}
-			g_bCopyIsRunning[Client] = true;
-			
-			CreateTimer(0.01, Timer_CopyRing, Client);
-			CreateTimer(0.01, Timer_CopyBeam, Client);
-			CreateTimer(0.02, Timer_CopyMain, Client);
-			return Plugin_Handled;
-		} else {
-			Build_PrintToChat(Client, "This prop was not copy able.");
-			return Plugin_Handled;
-		}
-	} else {
-		RemoveEdict(g_iCopyTarget[Client]);
-		return Plugin_Handled;
-	}
-}
-
-public Action:Command_Paste(Client, args) {
-	
-	if (!Build_AllowToUse(Client))
-		return Plugin_Handled;
-	
-	g_bCopyIsRunning[Client] = false;
-	return Plugin_Handled;
-}
-
-public Action:Timer_CopyBeam(Handle:Timer, any:Client) {
-	if (IsValidEntity(g_iCopyTarget[Client]) && Build_IsClientValid(Client, Client)) {
-		decl Float:fOriginPlayer[3], Float:fOriginEntity[3];
-		
-		GetClientAbsOrigin(Client, g_fCopyPlayerOrigin[Client]);
-		GetClientAbsOrigin(Client, fOriginPlayer);
-		
-		GetEntPropVector(g_iCopyTarget[Client], Prop_Data, "m_vecOrigin", fOriginEntity);
-		fOriginPlayer[2] += 50;
-		
-		new iColor[4];
-		iColor[0] = GetRandomInt(50, 255);
-		iColor[1] = GetRandomInt(50, 255);
-		iColor[2] = GetRandomInt(50, 255);
-		iColor[3] = GetRandomInt(255, 255);
-		
-		TE_SetupBeamPoints(fOriginEntity, fOriginPlayer, g_PBeam, g_Halo, 0, 66, 0.1, 2.0, 2.0, 0, 0.0, iColor, 20);
-		TE_SendToAll();
-		
-		if (g_bCopyIsRunning[Client])
-			CreateTimer(0.01, Timer_CopyBeam, Client);
-	}
-}
-
-public Action:Timer_CopyRing(Handle:Timer, any:Client) {
-	if (IsValidEntity(g_iCopyTarget[Client]) && Build_IsClientValid(Client, Client)) {
-		decl Float:fOriginEntity[3];
-		
-		GetEntPropVector(g_iCopyTarget[Client], Prop_Data, "m_vecOrigin", fOriginEntity);
-		
-		new iColor[4];
-		iColor[0] = GetRandomInt(50, 255);
-		iColor[1] = GetRandomInt(254, 255);
-		iColor[2] = GetRandomInt(254, 255);
-		iColor[3] = GetRandomInt(250, 255);
-		
-		TE_SetupBeamRingPoint(fOriginEntity, 10.0, 15.0, g_Beam, g_Halo, 0, 10, 0.6, 3.0, 0.5, iColor, 5, 0);
-		TE_SendToAll();
-		TE_SetupBeamRingPoint(fOriginEntity, 80.0, 100.0, g_Beam, g_Halo, 0, 10, 0.6, 3.0, 0.5, iColor, 5, 0);
-		TE_SendToAll();
-		
-		if (g_bCopyIsRunning[Client])
-			CreateTimer(0.3, Timer_CopyRing, Client);
-	}
-}
-
-public Action:Timer_CopyMain(Handle:Timer, any:Client) {
-	if (IsValidEntity(g_iCopyTarget[Client]) && Build_IsClientValid(Client, Client)) {
-		decl Float:fOriginEntity[3], Float:fOriginPlayer[3];
-		
-		GetEntPropVector(g_iCopyTarget[Client], Prop_Data, "m_vecOrigin", fOriginEntity);
-		GetClientAbsOrigin(Client, fOriginPlayer);
-		
-		fOriginEntity[0] += fOriginPlayer[0] - g_fCopyPlayerOrigin[Client][0];
-		fOriginEntity[1] += fOriginPlayer[1] - g_fCopyPlayerOrigin[Client][1];
-		fOriginEntity[2] += fOriginPlayer[2] - g_fCopyPlayerOrigin[Client][2];
-		
-		SetEntityMoveType(g_iCopyTarget[Client], MOVETYPE_NONE);
-		TeleportEntity(g_iCopyTarget[Client], fOriginEntity, NULL_VECTOR, NULL_VECTOR);
-		
-		if (g_bCopyIsRunning[Client])
-			CreateTimer(0.001, Timer_CopyMain, Client);
-		else {
-			SetEntityMoveType(g_iCopyTarget[Client], MOVETYPE_VPHYSICS);
-			
-			DispatchKeyValue(g_iCopyTarget[Client], "rendermode", "5");
-			DispatchKeyValue(g_iCopyTarget[Client], "renderamt", "255");
-			DispatchKeyValue(g_iCopyTarget[Client], "renderfx", "0");
-			DispatchKeyValue(g_iCopyTarget[Client], "rendercolor", "255 255 255");
-		}
-	}
-}
-
 public Action:Timer_CoolDown(Handle:hTimer, any:iBuffer)
 {
 	new iClient = GetClientFromSerial(iBuffer);
 	
 	if (g_bBuffer[iClient])g_bBuffer[iClient] = false;
-}
-
-public Action:Command_OpenableDoorProp(Client, args) {
-	if (!Build_AllowToUse(Client) || !Build_IsClientValid(Client, Client, true))
-		return Plugin_Handled;
-	
-	if (!IsPlayerAlive(Client))
-	{
-		Build_PrintToChat(Client, "You must be alive to use this command!");
-		
-		return Plugin_Handled;
-	}
-	
-	if (g_bBuffer[Client])
-	{
-		Build_PrintToChat(Client, "You're doing it too fast! Slow it down!");
-		
-		return Plugin_Handled;
-	}
-	
-	g_bBuffer[Client] = true;
-	CreateTimer(0.5, Timer_CoolDown, GetClientSerial(Client));
-	
-	new iDoor = CreateEntityByName("prop_door_rotating");
-	if (Build_RegisterEntityOwner(iDoor, Client)) {
-		new String:szRange[33], String:szBrightness[33], String:szColorR[33], String:szColorG[33], String:szColorB[33];
-		new String:szNamePropDoor[64];
-		new Float:fOriginAim[3];
-		GetCmdArg(1, szRange, sizeof(szRange));
-		GetCmdArg(2, szBrightness, sizeof(szBrightness));
-		GetCmdArg(3, szColorR, sizeof(szColorR));
-		GetCmdArg(4, szColorG, sizeof(szColorG));
-		GetCmdArg(5, szColorB, sizeof(szColorB));
-		
-		Build_ClientAimOrigin(Client, fOriginAim);
-		fOriginAim[2] += 50;
-		
-		if (!IsModelPrecached("models/props_manor/doorframe_01_door_01a.mdl"))
-			PrecacheModel("models/props_manor/doorframe_01_door_01a.mdl");
-		
-		DispatchKeyValue(iDoor, "model", "models/props_manor/doorframe_01_door_01a.mdl");
-		DispatchKeyValue(iDoor, "distance", "90");
-		DispatchKeyValue(iDoor, "speed", "100");
-		DispatchKeyValue(iDoor, "returndelay", "-1");
-		DispatchKeyValue(iDoor, "dmg", "-20");
-		DispatchKeyValue(iDoor, "opendir", "0");
-		DispatchKeyValue(iDoor, "spawnflags", "8192");
-		//DispatchKeyValue(iDoor, "OnFullyOpen", "!caller,close,,0,-1");
-		DispatchKeyValue(iDoor, "hardware", "1");
-		
-		DispatchSpawn(iDoor);
-		
-		TeleportEntity(iDoor, fOriginAim, NULL_VECTOR, NULL_VECTOR);
-		
-		Format(szNamePropDoor, sizeof(szNamePropDoor), "TF2SB_Door%i", GetRandomInt(1000, 5000));
-		DispatchKeyValue(iDoor, "targetname", szNamePropDoor);
-		SetVariantString(szNamePropDoor);
-	} else
-		RemoveEdict(iDoor);
-	
-	new String:szTemp[33], String:szArgs[128];
-	for (new i = 1; i <= GetCmdArgs(); i++) {
-		GetCmdArg(i, szTemp, sizeof(szTemp));
-		Format(szArgs, sizeof(szArgs), "%s %s", szArgs, szTemp);
-	}
-	Build_Logging(Client, "sm_propdoor", szArgs);
-	return Plugin_Handled;
 }
 
 public Action:Command_kill(Client, Args) {
@@ -2215,573 +1823,6 @@ public Action:Command_Delete(Client, args) {
 	return Plugin_Handled;
 }
 
-public Action:Command_DelRange(Client, args) {
-	if (!Build_IsClientValid(Client, Client))
-		return Plugin_Handled;
-	
-	new String:szCancel[32];
-	GetCmdArg(1, szCancel, sizeof(szCancel));
-	if (!StrEqual(szCancel, "") && (!StrEqual(g_szDelRangeStatus[Client], "off") || !StrEqual(g_szDelRangeStatus[Client], ""))) {
-		Build_PrintToChat(Client, "Canceled DelRange");
-		g_szDelRangeCancel[Client] = true;
-		return Plugin_Handled;
-	}
-	
-	if (StrEqual(g_szDelRangeStatus[Client], "x"))
-		g_szDelRangeStatus[Client] = "y";
-	else if (StrEqual(g_szDelRangeStatus[Client], "y"))
-		g_szDelRangeStatus[Client] = "z";
-	else if (StrEqual(g_szDelRangeStatus[Client], "z"))
-		g_szDelRangeStatus[Client] = "off";
-	else {
-		Build_ClientAimOrigin(Client, g_fDelRangePoint1[Client]);
-		g_szDelRangeStatus[Client] = "x";
-		CreateTimer(0.05, Timer_DR, Client);
-	}
-	return Plugin_Handled;
-}
-
-public Action:Command_DelStrider(Client, args) {
-	if (!Build_IsClientValid(Client, Client))
-		return Plugin_Handled;
-	
-	new Float:fRange, String:szRange[5], Float:vOriginAim[3];
-	GetCmdArg(1, szRange, sizeof(szRange));
-	
-	fRange = StringToFloat(szRange);
-	if (fRange < 1)
-		fRange = 300.0;
-	if (fRange > 5000)
-		fRange = 5000.0;
-	
-	Build_ClientAimOrigin(Client, vOriginAim);
-	
-	new Handle:hDataPack;
-	CreateDataTimer(0.01, Timer_DScharge, hDataPack);
-	WritePackCell(hDataPack, Client);
-	WritePackFloat(hDataPack, fRange);
-	WritePackFloat(hDataPack, vOriginAim[0]);
-	WritePackFloat(hDataPack, vOriginAim[1]);
-	WritePackFloat(hDataPack, vOriginAim[2]);
-	return Plugin_Handled;
-}
-
-public Action:Command_DelStrider2(Client, args) {
-	if (!Build_IsClientValid(Client, Client))
-		return Plugin_Handled;
-	
-	new Float:fRange, String:szRange[5], Float:vOriginAim[3];
-	GetCmdArg(1, szRange, sizeof(szRange));
-	
-	fRange = StringToFloat(szRange);
-	if (fRange < 1)
-		fRange = 300.0;
-	if (fRange > 5000)
-		fRange = 5000.0;
-	
-	Build_ClientAimOrigin(Client, vOriginAim);
-	
-	new Handle:hDataPack;
-	CreateDataTimer(0.01, Timer_DScharge2, hDataPack);
-	WritePackCell(hDataPack, Client);
-	WritePackFloat(hDataPack, fRange);
-	WritePackFloat(hDataPack, vOriginAim[0]);
-	WritePackFloat(hDataPack, vOriginAim[1]);
-	WritePackFloat(hDataPack, vOriginAim[2]);
-	return Plugin_Handled;
-}
-
-
-public Action:Timer_DR(Handle:Timer, any:Client) {
-	if (!Build_IsClientValid(Client, Client))
-		return;
-	if (g_szDelRangeCancel[Client]) {
-		g_szDelRangeCancel[Client] = false;
-		g_szDelRangeStatus[Client] = "off";
-		return;
-	}
-	
-	new Float:vPoint2[3], Float:vPoint3[3], Float:vPoint4[3];
-	new Float:vClonePoint1[3], Float:vClonePoint2[3], Float:vClonePoint3[3], Float:vClonePoint4[3];
-	new Float:vOriginAim[3], Float:vOriginPlayer[3];
-	
-	if (StrEqual(g_szDelRangeStatus[Client], "x")) {
-		Build_ClientAimOrigin(Client, vOriginAim);
-		vPoint2[0] = vOriginAim[0];
-		vPoint2[1] = vOriginAim[1];
-		vPoint2[2] = g_fDelRangePoint1[Client][2];
-		vClonePoint1[0] = g_fDelRangePoint1[Client][0];
-		vClonePoint1[1] = vPoint2[1];
-		vClonePoint1[2] = ((g_fDelRangePoint1[Client][2] + vPoint2[2]) / 2);
-		vClonePoint2[0] = vPoint2[0];
-		vClonePoint2[1] = g_fDelRangePoint1[Client][1];
-		vClonePoint2[2] = ((g_fDelRangePoint1[Client][2] + vPoint2[2]) / 2);
-		
-		GetClientAbsOrigin(Client, vOriginPlayer);
-		vOriginPlayer[2] = (vOriginPlayer[2] + 50);
-		
-		DrowLine(vClonePoint1, g_fDelRangePoint1[Client], ColorRed);
-		DrowLine(vClonePoint2, g_fDelRangePoint1[Client], ColorRed);
-		DrowLine(vPoint2, vClonePoint1, ColorRed);
-		DrowLine(vPoint2, vClonePoint2, ColorRed);
-		DrowLine(vPoint2, vOriginAim, ColorBlue);
-		DrowLine(vOriginAim, vOriginPlayer, ColorBlue);
-		
-		g_fDelRangePoint2[Client] = vPoint2;
-		CreateTimer(0.001, Timer_DR, Client);
-	} else if (StrEqual(g_szDelRangeStatus[Client], "y")) {
-		Build_ClientAimOrigin(Client, vOriginAim);
-		vPoint2[0] = g_fDelRangePoint2[Client][0];
-		vPoint2[1] = g_fDelRangePoint2[Client][1];
-		vPoint2[2] = g_fDelRangePoint1[Client][2];
-		vClonePoint1[0] = g_fDelRangePoint1[Client][0];
-		vClonePoint1[1] = vPoint2[1];
-		vClonePoint1[2] = ((g_fDelRangePoint1[Client][2] + vPoint2[2]) / 2);
-		vClonePoint2[0] = vPoint2[0];
-		vClonePoint2[1] = g_fDelRangePoint1[Client][1];
-		vClonePoint2[2] = ((g_fDelRangePoint1[Client][2] + vPoint2[2]) / 2);
-		
-		vPoint3[0] = g_fDelRangePoint1[Client][0];
-		vPoint3[1] = g_fDelRangePoint1[Client][1];
-		vPoint3[2] = vOriginAim[2];
-		vPoint4[0] = vPoint2[0];
-		vPoint4[1] = vPoint2[1];
-		vPoint4[2] = vOriginAim[2];
-		vClonePoint3[0] = vClonePoint1[0];
-		vClonePoint3[1] = vClonePoint1[1];
-		vClonePoint3[2] = vOriginAim[2];
-		vClonePoint4[0] = vClonePoint2[0];
-		vClonePoint4[1] = vClonePoint2[1];
-		vClonePoint4[2] = vOriginAim[2];
-		
-		GetClientAbsOrigin(Client, vOriginPlayer);
-		vOriginPlayer[2] = (vOriginPlayer[2] + 50);
-		
-		DrowLine(vClonePoint1, g_fDelRangePoint1[Client], ColorRed);
-		DrowLine(vClonePoint2, g_fDelRangePoint1[Client], ColorRed);
-		DrowLine(vPoint2, vClonePoint1, ColorRed);
-		DrowLine(vPoint2, vClonePoint2, ColorRed);
-		DrowLine(vPoint3, vClonePoint3, ColorRed);
-		DrowLine(vPoint3, vClonePoint4, ColorRed);
-		DrowLine(vPoint4, vClonePoint3, ColorRed);
-		DrowLine(vPoint4, vClonePoint4, ColorRed);
-		DrowLine(vPoint3, g_fDelRangePoint1[Client], ColorRed);
-		DrowLine(vPoint4, vPoint2, ColorRed);
-		DrowLine(vClonePoint1, vClonePoint3, ColorRed);
-		DrowLine(vClonePoint2, vClonePoint4, ColorRed);
-		DrowLine(vPoint4, vOriginAim, ColorBlue);
-		DrowLine(vOriginAim, vOriginPlayer, ColorBlue);
-		
-		g_fDelRangePoint3[Client] = vPoint4;
-		CreateTimer(0.001, Timer_DR, Client);
-	} else if (StrEqual(g_szDelRangeStatus[Client], "z")) {
-		vPoint2[0] = g_fDelRangePoint2[Client][0];
-		vPoint2[1] = g_fDelRangePoint2[Client][1];
-		vPoint2[2] = g_fDelRangePoint1[Client][2];
-		vClonePoint1[0] = g_fDelRangePoint1[Client][0];
-		vClonePoint1[1] = vPoint2[1];
-		vClonePoint1[2] = ((g_fDelRangePoint1[Client][2] + vPoint2[2]) / 2);
-		vClonePoint2[0] = vPoint2[0];
-		vClonePoint2[1] = g_fDelRangePoint1[Client][1];
-		vClonePoint2[2] = ((g_fDelRangePoint1[Client][2] + vPoint2[2]) / 2);
-		
-		vPoint3[0] = g_fDelRangePoint1[Client][0];
-		vPoint3[1] = g_fDelRangePoint1[Client][1];
-		vPoint3[2] = g_fDelRangePoint3[Client][2];
-		vClonePoint3[0] = vClonePoint1[0];
-		vClonePoint3[1] = vClonePoint1[1];
-		vClonePoint3[2] = g_fDelRangePoint3[Client][2];
-		vClonePoint4[0] = vClonePoint2[0];
-		vClonePoint4[1] = vClonePoint2[1];
-		vClonePoint4[2] = g_fDelRangePoint3[Client][2];
-		
-		DrowLine(g_fDelRangePoint1[Client], vClonePoint1, ColorGreen);
-		DrowLine(g_fDelRangePoint1[Client], vClonePoint2, ColorGreen);
-		DrowLine(vPoint2, vClonePoint1, ColorGreen);
-		DrowLine(vPoint2, vClonePoint2, ColorGreen);
-		DrowLine(vPoint3, vClonePoint3, ColorGreen);
-		DrowLine(vPoint3, vClonePoint4, ColorGreen);
-		DrowLine(g_fDelRangePoint3[Client], vClonePoint3, ColorGreen);
-		DrowLine(g_fDelRangePoint3[Client], vClonePoint4, ColorGreen);
-		DrowLine(vPoint3, g_fDelRangePoint1[Client], ColorGreen);
-		DrowLine(vPoint2, g_fDelRangePoint3[Client], ColorGreen);
-		DrowLine(vPoint2, vClonePoint1, ColorGreen);
-		DrowLine(vPoint2, vClonePoint1, ColorGreen);
-		TE_SetupBeamPoints(vPoint3, g_fDelRangePoint1[Client], g_Beam, g_Halo, 0, 66, 0.15, 7.0, 7.0, 0, 0.0, ColorGreen, 20);
-		TE_SendToAll();
-		TE_SetupBeamPoints(g_fDelRangePoint3[Client], vPoint2, g_Beam, g_Halo, 0, 66, 0.15, 7.0, 7.0, 0, 0.0, ColorGreen, 20);
-		TE_SendToAll();
-		TE_SetupBeamPoints(vClonePoint3, vClonePoint1, g_Beam, g_Halo, 0, 66, 0.15, 7.0, 7.0, 0, 0.0, ColorGreen, 20);
-		TE_SendToAll();
-		TE_SetupBeamPoints(vClonePoint4, vClonePoint2, g_Beam, g_Halo, 0, 66, 0.15, 7.0, 7.0, 0, 0.0, ColorGreen, 20);
-		TE_SendToAll();
-		
-		CreateTimer(0.001, Timer_DR, Client);
-	} else {
-		vPoint2[0] = g_fDelRangePoint2[Client][0];
-		vPoint2[1] = g_fDelRangePoint2[Client][1];
-		vPoint2[2] = g_fDelRangePoint1[Client][2];
-		vPoint3[0] = g_fDelRangePoint1[Client][0];
-		vPoint3[1] = g_fDelRangePoint1[Client][1];
-		vPoint3[2] = g_fDelRangePoint3[Client][2];
-		
-		vClonePoint1[0] = g_fDelRangePoint1[Client][0];
-		vClonePoint1[1] = vPoint2[1];
-		vClonePoint1[2] = g_fDelRangePoint1[Client][2];
-		vClonePoint2[0] = vPoint2[0];
-		vClonePoint2[1] = g_fDelRangePoint1[Client][1];
-		vClonePoint2[2] = vPoint2[2];
-		vClonePoint3[0] = vClonePoint1[0];
-		vClonePoint3[1] = vClonePoint1[1];
-		vClonePoint3[2] = g_fDelRangePoint3[Client][2];
-		vClonePoint4[0] = vClonePoint2[0];
-		vClonePoint4[1] = vClonePoint2[1];
-		vClonePoint4[2] = g_fDelRangePoint3[Client][2];
-		
-		DrowLine(vClonePoint1, g_fDelRangePoint1[Client], ColorWhite, true);
-		DrowLine(vClonePoint2, g_fDelRangePoint1[Client], ColorWhite, true);
-		DrowLine(vClonePoint3, g_fDelRangePoint3[Client], ColorWhite, true);
-		DrowLine(vClonePoint4, g_fDelRangePoint3[Client], ColorWhite, true);
-		DrowLine(vPoint2, vClonePoint1, ColorWhite, true);
-		DrowLine(vPoint2, vClonePoint2, ColorWhite, true);
-		DrowLine(vPoint3, vClonePoint3, ColorWhite, true);
-		DrowLine(vPoint3, vClonePoint4, ColorWhite, true);
-		DrowLine(vPoint2, g_fDelRangePoint3[Client], ColorWhite, true);
-		DrowLine(vPoint3, g_fDelRangePoint1[Client], ColorWhite, true);
-		DrowLine(vClonePoint1, vClonePoint3, ColorWhite, true);
-		DrowLine(vClonePoint2, vClonePoint4, ColorWhite, true);
-		
-		new Obj_Dissolver = CreateEntityByName("env_entity_dissolver");
-		DispatchKeyValue(Obj_Dissolver, "dissolvetype", "3");
-		DispatchKeyValue(Obj_Dissolver, "targetname", "Del_Dissolver");
-		DispatchSpawn(Obj_Dissolver);
-		ActivateEntity(Obj_Dissolver);
-		
-		new Float:vOriginEntity[3], String:szClass[32];
-		new iCount = 0;
-		new iEntity = -1;
-		for (new i = 0; i < sizeof(EntityType); i++) {
-			while ((iEntity = FindEntityByClassname(iEntity, EntityType[i])) != -1) {
-				GetEntPropVector(iEntity, Prop_Data, "m_vecOrigin", vOriginEntity);
-				vOriginEntity[2] += 1;
-				if (vOriginEntity[0] != 0 && vOriginEntity[1] != 1 && vOriginEntity[2] != 0 && Build_IsInSquare(vOriginEntity, g_fDelRangePoint1[Client], g_fDelRangePoint3[Client])) {
-					GetEdictClassname(iEntity, szClass, sizeof(szClass));
-					if (StrEqual(szClass, "func_physbox"))
-						AcceptEntityInput(iEntity, "kill", -1);
-					else {
-						DispatchKeyValue(iEntity, "targetname", "Del_Target");
-						SetVariantString("Del_Target");
-						AcceptEntityInput(Obj_Dissolver, "dissolve", iEntity, Obj_Dissolver, 0);
-						DispatchKeyValue(iEntity, "targetname", "Del_Drop");
-					}
-					
-					new iOwner = Build_ReturnEntityOwner(iEntity);
-					if (iOwner != -1) {
-						if (StrEqual(szClass, "prop_ragdoll"))
-							Build_SetLimit(iOwner, -1, true);
-						else
-							Build_SetLimit(iOwner, -1);
-						
-						Build_RegisterEntityOwner(iEntity, -1);
-					}
-				}
-			}
-		}
-		AcceptEntityInput(Obj_Dissolver, "kill", -1);
-		
-		if (iCount > 0)
-			Build_PrintToChat(Client, "Deleted %i props.", iCount);
-	}
-}
-
-public Action:Timer_DScharge(Handle:Timer, Handle:hDataPack) {
-	new Float:vOriginAim[3], Float:vOriginPlayer[3];
-	ResetPack(hDataPack);
-	new Client = ReadPackCell(hDataPack);
-	new Float:fRange = ReadPackFloat(hDataPack);
-	vOriginAim[0] = ReadPackFloat(hDataPack);
-	vOriginAim[1] = ReadPackFloat(hDataPack);
-	vOriginAim[2] = ReadPackFloat(hDataPack);
-	
-	GetClientAbsOrigin(Client, vOriginPlayer);
-	vOriginPlayer[2] = (vOriginPlayer[2] + 50);
-	
-	EmitAmbientSound("npc/strider/charging.wav", vOriginAim, Client, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
-	EmitAmbientSound("npc/strider/charging.wav", vOriginPlayer, Client, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.3);
-	
-	new Obj_Push = CreatePush(vOriginAim, -1000.0, fRange, "20");
-	AcceptEntityInput(Obj_Push, "enable", -1);
-	
-	new Obj_Core = CreateCore(vOriginAim, 5.0, "1");
-	AcceptEntityInput(Obj_Core, "startdischarge", -1);
-	/*
-	new String:szPointTeslaName[128], String:szThickMin[64], String:szThickMax[64], String:szOnUser[128], String:szKill[64];
-	new Obj_PointTesla = CreateEntityByName("point_tesla");
-	TeleportEntity(Obj_PointTesla, vOriginAim, NULL_VECTOR, NULL_VECTOR);
-	Format(szPointTeslaName, sizeof(szPointTeslaName), "szTesla%i", GetRandomInt(1000, 5000));
-	new Float:fThickMin = StringToFloat(szRange) / 40;
-	new Float:iThickMax = StringToFloat(szRange) / 30;
-	Format(szThickMin, sizeof(szThickMin), "%i", RoundToFloor(fThickMin));
-	Format(szThickMax, sizeof(szThickMax), "%i", RoundToFloor(iThickMax));
-	
-	DispatchKeyValue(Obj_PointTesla, "targetname", szPointTeslaName);
-	DispatchKeyValue(Obj_PointTesla, "sprite", "sprites/physbeam.vmt");
-	DispatchKeyValue(Obj_PointTesla, "m_color", "255 255 255");
-	DispatchKeyValue(Obj_PointTesla, "m_flradius", szRange);
-	DispatchKeyValue(Obj_PointTesla, "beamcount_min", "100");
-	DispatchKeyValue(Obj_PointTesla, "beamcount_max", "500");
-	DispatchKeyValue(Obj_PointTesla, "thick_min", szThickMin);
-	DispatchKeyValue(Obj_PointTesla, "thick_max", szThickMax);
-	DispatchKeyValue(Obj_PointTesla, "lifetime_min", "0.1");
-	DispatchKeyValue(Obj_PointTesla, "lifetime_max", "0.1");
-	
-	new Float:f;
-	for (f = 0.0; f < 1.3; f=f+0.05) {
-		Format(szOnUser, sizeof(szOnUser), "%s,dospark,,%f", szPointTeslaName, f);
-		DispatchKeyValue(Obj_PointTesla, "onuser1", szOnUser);
-	}
-	Format(szKill, sizeof(szKill), "%s,kill,,1.3", szPointTeslaName);
-	DispatchSpawn(Obj_PointTesla);
-	DispatchKeyValue(Obj_PointTesla, "onuser1", szKill);
-	AcceptEntityInput(Obj_PointTesla, "fireuser1", -1);
-	*/
-	TE_SetupBeamPoints(vOriginAim, vOriginPlayer, g_Beam, g_Halo, 0, 66, 1.3, 15.0, 15.0, 0, 0.0, ColorBlue, 20);
-	TE_SendToAll();
-	TE_SetupBeamPoints(vOriginAim, vOriginPlayer, g_Beam, g_Halo, 0, 66, 1.3, 20.0, 20.0, 0, 0.0, ColorWhite, 20);
-	TE_SendToAll();
-	
-	new Handle:hNewPack;
-	CreateDataTimer(1.3, Timer_DSfire, hNewPack);
-	WritePackCell(hNewPack, Client);
-	WritePackCell(hNewPack, Obj_Push);
-	WritePackCell(hNewPack, Obj_Core);
-	WritePackFloat(hNewPack, fRange);
-	WritePackFloat(hNewPack, vOriginAim[0]);
-	WritePackFloat(hNewPack, vOriginAim[1]);
-	WritePackFloat(hNewPack, vOriginAim[2]);
-	WritePackFloat(hNewPack, vOriginPlayer[0]);
-	WritePackFloat(hNewPack, vOriginPlayer[1]);
-	WritePackFloat(hNewPack, vOriginPlayer[2]);
-}
-
-public Action:Timer_DSfire(Handle:Timer, Handle:hDataPack) {
-	new Float:vOriginAim[3], Float:vOriginPlayer[3];
-	ResetPack(hDataPack);
-	new Client = ReadPackCell(hDataPack);
-	new Obj_Push = ReadPackCell(hDataPack);
-	new Obj_Core = ReadPackCell(hDataPack);
-	new Float:fRange = ReadPackFloat(hDataPack);
-	vOriginAim[0] = ReadPackFloat(hDataPack);
-	vOriginAim[1] = ReadPackFloat(hDataPack);
-	vOriginAim[2] = ReadPackFloat(hDataPack);
-	vOriginPlayer[0] = ReadPackFloat(hDataPack);
-	vOriginPlayer[1] = ReadPackFloat(hDataPack);
-	vOriginPlayer[2] = ReadPackFloat(hDataPack);
-	
-	if (IsValidEntity(Obj_Push))
-		AcceptEntityInput(Obj_Push, "kill", -1);
-	if (IsValidEntity(Obj_Core))
-		AcceptEntityInput(Obj_Core, "kill", -1);
-	
-	EmitAmbientSound("npc/strider/fire.wav", vOriginAim, Client, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
-	EmitAmbientSound("npc/strider/fire.wav", vOriginPlayer, Client, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
-	
-	TE_SetupBeamPoints(vOriginAim, vOriginPlayer, g_Beam, g_Halo, 0, 66, 0.2, 15.0, 15.0, 0, 0.0, ColorRed, 20);
-	TE_SendToAll();
-	TE_SetupBeamPoints(vOriginAim, vOriginPlayer, g_Beam, g_Halo, 0, 66, 0.2, 20.0, 20.0, 0, 0.0, ColorWhite, 20);
-	TE_SendToAll();
-	
-	new Obj_Dissolver = CreateDissolver("3");
-	new Float:vOriginEntity[3];
-	new iCount = 0;
-	new iEntity = -1;
-	for (new i = 0; i < sizeof(EntityType); i++) {
-		while ((iEntity = FindEntityByClassname(iEntity, EntityType[i])) != -1) {
-			GetEntPropVector(iEntity, Prop_Data, "m_vecOrigin", vOriginEntity);
-			vOriginEntity[2] += 1;
-			new String:szClass[33];
-			GetEdictClassname(iEntity, szClass, sizeof(szClass));
-			if (vOriginEntity[0] != 0 && vOriginEntity[1] != 1 && vOriginEntity[2] != 0 && !StrEqual(szClass, "player") && Build_IsInRange(vOriginEntity, vOriginAim, fRange)) {
-				if (StrEqual(szClass, "func_physbox"))
-					AcceptEntityInput(iEntity, "kill", -1);
-				else {
-					DispatchKeyValue(iEntity, "targetname", "Del_Target");
-					SetVariantString("Del_Target");
-					AcceptEntityInput(Obj_Dissolver, "dissolve", iEntity, Obj_Dissolver, 0);
-					DispatchKeyValue(iEntity, "targetname", "Del_Drop");
-				}
-				
-				new iOwner = Build_ReturnEntityOwner(iEntity);
-				if (iOwner != -1) {
-					if (StrEqual(szClass, "prop_ragdoll"))
-						Build_SetLimit(iOwner, -1, true);
-					else
-						Build_SetLimit(iOwner, -1);
-					
-					Build_RegisterEntityOwner(iEntity, -1);
-				}
-				iCount++;
-			}
-		}
-	}
-	AcceptEntityInput(Obj_Dissolver, "kill", -1);
-	if (iCount > 0 && Build_IsClientValid(Client, Client))
-		Build_PrintToChat(Client, "Deleted %i props.", iCount);
-}
-
-public Action:Timer_DScharge2(Handle:Timer, Handle:hDataPack) {
-	new Float:vOriginAim[3], Float:vOriginPlayer[3];
-	ResetPack(hDataPack);
-	new Client = ReadPackCell(hDataPack);
-	new Float:fRange = ReadPackFloat(hDataPack);
-	vOriginAim[0] = ReadPackFloat(hDataPack);
-	vOriginAim[1] = ReadPackFloat(hDataPack);
-	vOriginAim[2] = ReadPackFloat(hDataPack);
-	
-	GetClientAbsOrigin(Client, vOriginPlayer);
-	vOriginPlayer[2] = (vOriginPlayer[2] + 50);
-	
-	EmitAmbientSound("npc/strider/charging.wav", vOriginAim, Client, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
-	EmitAmbientSound("npc/strider/charging.wav", vOriginPlayer, Client, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.3);
-	
-	new Obj_Push = CreatePush(vOriginAim, -1000.0, fRange, "28");
-	AcceptEntityInput(Obj_Push, "enable", -1);
-	
-	new Obj_Core = CreateCore(vOriginAim, 5.0, "1");
-	AcceptEntityInput(Obj_Core, "startdischarge", -1);
-	
-	/*new Float:vOriginEntity[3], String:szClass[32];
-	new iEntity = -1;
-	for (new i = 0; i < sizeof(EntityType); i++) {
-		while ((iEntity = FindEntityByClassname(iEntity, EntityType[i])) != -1) {
-			GetEntPropVector(iEntity, Prop_Data, "m_vecOrigin", vOriginEntity);
-			vOriginEntity[2] = (vOriginEntity[2] + 1);
-			if (Phys_IsPhysicsObject(iEntity)) {
-				GetEdictClassname(iEntity, szClass, sizeof(szClass));
-				if (Build_IsInRange(vOriginEntity, vOriginAim, fRange)) {
-					Phys_EnableMotion(iEntity, true);
-					if (StrEqual(szClass, "player"))
-						SetEntityMoveType(iEntity, MOVETYPE_WALK);
-					else
-						SetEntityMoveType(iEntity, MOVETYPE_VPHYSICS);
-				}
-			}
-		}
-	}
-	
-	new String:szPointTeslaName[128], String:szThickMin[64], String:szThickMax[64], String:szOnUser[128], String:szKill[64];
-	new Obj_PointTesla = CreateEntityByName("point_tesla");
-	TeleportEntity(Obj_PointTesla, vOriginAim, NULL_VECTOR, NULL_VECTOR);
-	Format(szPointTeslaName, sizeof(szPointTeslaName), "szTesla%i", GetRandomInt(1000, 5000));
-	new Float:fThickMin = StringToFloat(szRange) / 40;
-	new Float:iThickMax = StringToFloat(szRange) / 30;
-	Format(szThickMin, sizeof(szThickMin), "%i", RoundToFloor(fThickMin));
-	Format(szThickMax, sizeof(szThickMax), "%i", RoundToFloor(iThickMax));
-	
-	DispatchKeyValue(Obj_PointTesla, "targetname", szPointTeslaName);
-	DispatchKeyValue(Obj_PointTesla, "sprite", "sprites/physbeam.vmt");
-	DispatchKeyValue(Obj_PointTesla, "m_color", "255 255 255");
-	DispatchKeyValue(Obj_PointTesla, "m_flradius", szRange);
-	DispatchKeyValue(Obj_PointTesla, "beamcount_min", "100");
-	DispatchKeyValue(Obj_PointTesla, "beamcount_max", "500");
-	DispatchKeyValue(Obj_PointTesla, "thick_min", szThickMin);
-	DispatchKeyValue(Obj_PointTesla, "thick_max", szThickMax);
-	DispatchKeyValue(Obj_PointTesla, "lifetime_min", "0.1");
-	DispatchKeyValue(Obj_PointTesla, "lifetime_max", "0.1");
-	
-	new Float:f;
-	for (f = 0.0; f < 1.3; f=f+0.05) {
-		Format(szOnUser, sizeof(szOnUser), "%s,dospark,,%f", szPointTeslaName, f);
-		DispatchKeyValue(Obj_PointTesla, "onuser1", szOnUser);
-	}
-	Format(szKill, sizeof(szKill), "%s,kill,,1.3", szPointTeslaName);
-	DispatchSpawn(Obj_PointTesla);
-	DispatchKeyValue(Obj_PointTesla, "onuser1", szKill);
-	AcceptEntityInput(Obj_PointTesla, "fireuser1", -1);
-	*/
-	TE_SetupBeamPoints(vOriginAim, vOriginPlayer, g_Beam, g_Halo, 0, 66, 1.3, 15.0, 15.0, 0, 0.0, ColorBlue, 20);
-	TE_SendToAll();
-	TE_SetupBeamPoints(vOriginAim, vOriginPlayer, g_Beam, g_Halo, 0, 66, 1.3, 20.0, 20.0, 0, 0.0, ColorWhite, 20);
-	TE_SendToAll();
-	
-	new Handle:hNewPack;
-	CreateDataTimer(1.3, Timer_DSfire2, hNewPack);
-	WritePackCell(hNewPack, Client);
-	WritePackCell(hNewPack, Obj_Push);
-	WritePackCell(hNewPack, Obj_Core);
-	WritePackFloat(hNewPack, fRange);
-	WritePackFloat(hNewPack, vOriginAim[0]);
-	WritePackFloat(hNewPack, vOriginAim[1]);
-	WritePackFloat(hNewPack, vOriginAim[2]);
-	WritePackFloat(hNewPack, vOriginPlayer[0]);
-	WritePackFloat(hNewPack, vOriginPlayer[1]);
-	WritePackFloat(hNewPack, vOriginPlayer[2]);
-}
-
-public Action:Timer_DSfire2(Handle:Timer, Handle:hDataPack) {
-	new Float:vOriginAim[3], Float:vOriginPlayer[3];
-	ResetPack(hDataPack);
-	new Client = ReadPackCell(hDataPack);
-	new Obj_Push = ReadPackCell(hDataPack);
-	new Obj_Core = ReadPackCell(hDataPack);
-	new Float:fRange = ReadPackFloat(hDataPack);
-	vOriginAim[0] = ReadPackFloat(hDataPack);
-	vOriginAim[1] = ReadPackFloat(hDataPack);
-	vOriginAim[2] = ReadPackFloat(hDataPack);
-	vOriginPlayer[0] = ReadPackFloat(hDataPack);
-	vOriginPlayer[1] = ReadPackFloat(hDataPack);
-	vOriginPlayer[2] = ReadPackFloat(hDataPack);
-	
-	if (IsValidEntity(Obj_Push))
-		AcceptEntityInput(Obj_Push, "kill", -1);
-	if (IsValidEntity(Obj_Core))
-		AcceptEntityInput(Obj_Core, "kill", -1);
-	
-	EmitAmbientSound("npc/strider/fire.wav", vOriginAim, Client, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
-	EmitAmbientSound("npc/strider/fire.wav", vOriginPlayer, Client, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
-	
-	TE_SetupBeamPoints(vOriginAim, vOriginPlayer, g_Beam, g_Halo, 0, 66, 0.2, 15.0, 15.0, 0, 0.0, ColorRed, 20);
-	TE_SendToAll();
-	TE_SetupBeamPoints(vOriginAim, vOriginPlayer, g_Beam, g_Halo, 0, 66, 0.2, 20.0, 20.0, 0, 0.0, ColorWhite, 20);
-	TE_SendToAll();
-	
-	new Obj_Dissolver = CreateDissolver("3");
-	new Float:vOriginEntity[3];
-	new iCount = 0;
-	new iEntity = -1;
-	for (new i = 0; i < sizeof(EntityType); i++) {
-		while ((iEntity = FindEntityByClassname(iEntity, EntityType[i])) != -1) {
-			GetEntPropVector(iEntity, Prop_Data, "m_vecOrigin", vOriginEntity);
-			vOriginEntity[2] += 1;
-			new String:szClass[33];
-			GetEdictClassname(iEntity, szClass, sizeof(szClass));
-			if (vOriginEntity[0] != 0 && vOriginEntity[1] != 1 && vOriginEntity[2] != 0 && Build_IsInRange(vOriginEntity, vOriginAim, fRange)) {
-				if (StrEqual(szClass, "func_physbox"))
-					AcceptEntityInput(iEntity, "kill", -1);
-				else {
-					DispatchKeyValue(iEntity, "targetname", "Del_Target");
-					SetVariantString("Del_Target");
-					AcceptEntityInput(Obj_Dissolver, "dissolve", iEntity, Obj_Dissolver, 0);
-					DispatchKeyValue(iEntity, "targetname", "Del_Drop");
-				}
-				new iOwner = Build_ReturnEntityOwner(iEntity);
-				if (iOwner != -1) {
-					if (StrEqual(szClass, "prop_ragdoll"))
-						Build_SetLimit(iOwner, -1, true);
-					else
-						Build_SetLimit(iOwner, -1);
-					
-					Build_RegisterEntityOwner(iEntity, -1);
-				}
-				iCount++;
-			}
-		}
-	}
-	AcceptEntityInput(Obj_Dissolver, "kill", -1);
-	if (iCount > 0 && Build_IsClientValid(Client, Client))
-		Build_PrintToChat(Client, "Deleted %i props.", iCount);
-}
-
 public OnPropBreak(const String:output[], iEntity, iActivator, Float:delay) {
 	if (IsValidEntity(iEntity))
 		CreateTimer(0.1, Timer_PropBreak, iEntity);
@@ -2796,34 +1837,6 @@ public Action:Timer_PropBreak(Handle:Timer, any:iEntity) {
 		Build_RegisterEntityOwner(iEntity, -1);
 		AcceptEntityInput(iEntity, "kill", -1);
 	}
-}
-
-stock DrowLine(Float:vPoint1[3], Float:vPoint2[3], Color[4], bool:bFinale = false) {
-	if (bFinale)
-		TE_SetupBeamPoints(vPoint1, vPoint2, g_Beam, g_Halo, 0, 66, 0.5, 7.0, 7.0, 0, 0.0, Color, 20);
-	else
-		TE_SetupBeamPoints(vPoint1, vPoint2, g_Beam, g_Halo, 0, 66, 0.15, 7.0, 7.0, 0, 0.0, Color, 20);
-	TE_SendToAll();
-}
-
-stock CreatePush(Float:vOrigin[3], Float:fMagnitude, Float:fRange, String:szSpawnFlags[8]) {
-	new Push_Index = CreateEntityByName("point_push");
-	TeleportEntity(Push_Index, vOrigin, NULL_VECTOR, NULL_VECTOR);
-	DispatchKeyValueFloat(Push_Index, "magnitude", fMagnitude);
-	DispatchKeyValueFloat(Push_Index, "radius", fRange);
-	DispatchKeyValueFloat(Push_Index, "inner_radius", fRange);
-	DispatchKeyValue(Push_Index, "spawnflags", szSpawnFlags);
-	DispatchSpawn(Push_Index);
-	return Push_Index;
-}
-
-stock CreateCore(Float:vOrigin[3], Float:fScale, String:szSpawnFlags[8]) {
-	new Core_Index = CreateEntityByName("env_citadel_energy_core");
-	TeleportEntity(Core_Index, vOrigin, NULL_VECTOR, NULL_VECTOR);
-	DispatchKeyValueFloat(Core_Index, "scale", fScale);
-	DispatchKeyValue(Core_Index, "spawnflags", szSpawnFlags);
-	DispatchSpawn(Core_Index);
-	return Core_Index;
 }
 
 stock CreateDissolver(String:szDissolveType[4]) {
@@ -2894,7 +1907,8 @@ public PropMenu(Handle:menu, MenuAction:action, param1, param2)
 		
 		if (StrEqual(info, "removeprops"))
 		{
-			DisplayMenu(g_hRemoveMenu, param1, MENU_TIME_FOREVER);
+			//DisplayMenu(g_hRemoveMenu, param1, MENU_TIME_FOREVER);
+			FakeClientCommand(param1, "sm_del");
 		}
 		else if (StrEqual(info, "constructprops"))
 		{
@@ -3112,72 +2126,6 @@ public EquipMenu(Handle:menu, MenuAction:action, param1, param2)
 	}
 }
 
-public RemoveMenu(Handle:menu, MenuAction:action, param1, param2)
-{
-	if (action == MenuAction_Select && IsClientInGame(param1))
-	{
-		DisplayMenu(g_hRemoveMenu, param1, MENU_TIME_FOREVER);
-		new String:item[64];
-		GetMenuItem(menu, param2, item, sizeof(item));
-		
-		if (StrEqual(item, "remove"))
-		{
-			FakeClientCommand(param1, "sm_del");
-		}
-	}
-	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack && IsClientInGame(param1))
-	{
-		DisplayMenu(g_hPropMenu, param1, MENU_TIME_FOREVER);
-	}
-}
-
-public BuildHelperMenu(Handle:menu, MenuAction:action, param1, param2)
-{
-	if (action == MenuAction_Select && IsClientInGame(param1))
-	{
-		DisplayMenu(g_hBuildHelperMenu, param1, MENU_TIME_FOREVER);
-		new String:item[64];
-		GetMenuItem(menu, param2, item, sizeof(item));
-		
-		if (StrEqual(item, "delprop"))
-		{
-			FakeClientCommand(param1, "sm_del");
-		}
-		else if (StrEqual(item, "colors"))
-		{
-			FakeClientCommand(param1, "sm_color");
-		}
-		else if (StrEqual(item, "effects"))
-		{
-			FakeClientCommand(param1, "sm_render");
-		}
-		else if (StrEqual(item, "skin"))
-		{
-			FakeClientCommand(param1, "sm_skin");
-		}
-		else if (StrEqual(item, "rotate"))
-		{
-			FakeClientCommand(param1, "sm_rotate");
-		}
-		else if (StrEqual(item, "accuraterotate"))
-		{
-			FakeClientCommand(param1, "sm_accuraterotate");
-		}
-		else if (StrEqual(item, "lights"))
-		{
-			FakeClientCommand(param1, "sm_simplelight");
-		}
-		else if (StrEqual(item, "doors"))
-		{
-			FakeClientCommand(param1, "sm_propdoor");
-		}
-	}
-	else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack && IsClientInGame(param1))
-	{
-		DisplayMenu(g_hMainMenu, param1, MENU_TIME_FOREVER);
-	}
-}
-
 public PropMenuHL2(Handle:menu, MenuAction:action, param1, param2)
 {
 	if (action == MenuAction_Select && IsClientInGame(param1))
@@ -3190,7 +2138,8 @@ public PropMenuHL2(Handle:menu, MenuAction:action, param1, param2)
 		
 		if (StrEqual(info, "removeprops"))
 		{
-			DisplayMenu(g_hRemoveMenu, param1, MENU_TIME_FOREVER);
+			//DisplayMenu(g_hRemoveMenu, param1, MENU_TIME_FOREVER);
+			FakeClientCommand(param1, "sm_del");
 		}
 		else
 		{
@@ -3215,7 +2164,8 @@ public PropMenuConstructions(Handle:menu, MenuAction:action, param1, param2)
 		
 		if (StrEqual(info, "removeprops"))
 		{
-			DisplayMenu(g_hRemoveMenu, param1, MENU_TIME_FOREVER);
+			//DisplayMenu(g_hRemoveMenu, param1, MENU_TIME_FOREVER);
+			FakeClientCommand(param1, "sm_del");
 		}
 		else
 		{
@@ -3240,7 +2190,8 @@ public PropMenuComics(Handle:menu, MenuAction:action, param1, param2)
 		
 		if (StrEqual(info, "removeprops"))
 		{
-			DisplayMenu(g_hRemoveMenu, param1, MENU_TIME_FOREVER);
+			//DisplayMenu(g_hRemoveMenu, param1, MENU_TIME_FOREVER);
+			FakeClientCommand(param1, "sm_del");
 		}
 		else
 		{
@@ -3265,7 +2216,8 @@ public PropMenuWeapons(Handle:menu, MenuAction:action, param1, param2)
 		
 		if (StrEqual(info, "removeprops"))
 		{
-			DisplayMenu(g_hRemoveMenu, param1, MENU_TIME_FOREVER);
+			//DisplayMenu(g_hRemoveMenu, param1, MENU_TIME_FOREVER);
+			FakeClientCommand(param1, "sm_del");
 		}
 		else
 		{
@@ -3290,7 +2242,8 @@ public PropMenuPickup(Handle:menu, MenuAction:action, param1, param2)
 		
 		if (StrEqual(info, "removeprops"))
 		{
-			DisplayMenu(g_hRemoveMenu, param1, MENU_TIME_FOREVER);
+			//DisplayMenu(g_hRemoveMenu, param1, MENU_TIME_FOREVER);
+			FakeClientCommand(param1, "sm_del");
 		}
 		else
 		{
@@ -3302,10 +2255,6 @@ public PropMenuPickup(Handle:menu, MenuAction:action, param1, param2)
 		DisplayMenu(g_hPropMenu, param1, MENU_TIME_FOREVER);
 	}
 }
-
-
-// GravityGun.SP
-
 
 public Action:ClientRemoveAll(client, args)
 {
